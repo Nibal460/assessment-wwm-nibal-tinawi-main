@@ -3,47 +3,87 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
+use Illuminate\Http\Request;
+use App\Models\Category;
+use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
+/**
+ * @OA\Tag(
+ *     name="Kategorien",
+ *     description="API Endpoints für Kategorien"
+ * )
+ */
 class CategoryController extends Controller
 {
-    public function __construct()
-    {
-        // Nur authentifizierte Nutzer
-        $this->middleware('auth:sanctum');
+    
+    
+    /**
+ * @OA\Get(
+ *     path="/api/categories/{id}",
+ *     summary="Kategorie nach ID abrufen",
+ *     tags={"Kategorien"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         description="ID der Kategorie",
+ *         required=true,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Kategorie gefunden",
+ *         @OA\JsonContent(ref="#/components/schemas/Category")
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Kategorie nicht gefunden"
+ *     )
+ * )
+ **/
+public function show(int $id): JsonResponse
+{
+    $category = Category::find($id);
 
-        // Nur Admins für Schreiboperationen
-        $this->middleware(function ($request, $next) {
-            if (!Auth::user()?->is_admin) {
-                return response()->json(['message' => 'Nicht autorisiert'], 403);
-            }
-            return $next($request);
-        })->only(['store', 'update', 'destroy']);
+    if (!$category) {
+        return response()->json(['message' => 'Kategorie nicht gefunden'], 404);
     }
 
-    // 🟢 GET /api/categories
-    public function index(): JsonResponse
-    {
-        return response()->json(Category::all(), 200);
-    }
+    return response()->json($category, 200);
+}
 
-    // 🟢 GET /api/categories/{id}
-    public function show(int $id): JsonResponse
-    {
-        $category = Category::find($id);
+   /**
+ * @OA\Post(
+ *     path="/api/categories",
+ *     summary="Neue Kategorie erstellen",
+ *     tags={"Kategorien"},
+ *     security={{"sanctum": {}}},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(ref="#/components/schemas/StoreCategoryRequest")
+ *     ),
+ *     @OA\Response(
+ *         response=201,
+ *         description="Kategorie erfolgreich erstellt",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Kategorie erfolgreich erstellt."),
+ *             @OA\Property(property="category", ref="#/components/schemas/Category")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Ungültige Eingabe"
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Nicht autorisiert"
+ *     )
+ * )
+ */
 
-        if (!$category) {
-            return response()->json(['message' => 'Kategorie nicht gefunden'], 404);
-        }
-
-        return response()->json($category, 200);
-    }
-
-    // 🛡️ POST /api/categories
     public function store(StoreCategoryRequest $request): JsonResponse
     {
         $category = Category::create($request->validated());
@@ -54,7 +94,34 @@ class CategoryController extends Controller
         ], 201);
     }
 
-    // 🛡️ PUT /api/categories/{id}
+    /**
+ * @OA\Put(
+ *     path="/api/categories/{id}",
+ *     summary="Kategorie aktualisieren",
+ *     tags={"Kategorien"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID der Kategorie",
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\RequestBody(
+ *         required=true,
+ *         @OA\JsonContent(ref="#/components/schemas/UpdateCategoryRequest")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Erfolgreich aktualisiert",
+ *         @OA\JsonContent(ref="#/components/schemas/Category")
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Kategorie nicht gefunden"
+ *     )
+ * )
+ */
+
     public function update(UpdateCategoryRequest $request, int $id): JsonResponse
     {
         $category = Category::find($id);
@@ -65,13 +132,33 @@ class CategoryController extends Controller
 
         $category->update($request->validated());
 
-        return response()->json([
-            'message' => 'Kategorie erfolgreich aktualisiert.',
-            'category' => $category
-        ], 200);
+        return response()->json($category, 200);
     }
 
-    // 🛡️ DELETE /api/categories/{id}
+    /**
+     * @OA\Delete(
+     *     path="/api/categories/{id}",
+     *     summary="Kategorie löschen",
+     *     tags={"Kategorien"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="ID der Kategorie",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Kategorie erfolgreich gelöscht",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Kategorie erfolgreich gelöscht.")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Kategorie nicht gefunden"),
+     *     @OA\Response(response=403, description="Nicht autorisiert")
+     * )
+     */
     public function destroy(int $id): JsonResponse
     {
         $category = Category::find($id);

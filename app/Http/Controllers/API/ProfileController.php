@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,21 @@ class ProfileController extends Controller
     }
 
     /**
-     * Zeige das Profil des aktuell angemeldeten Benutzers.
+     * @OA\Get(
+     *     path="/api/profile",
+     *     summary="Profil des angemeldeten Benutzers anzeigen",
+     *     tags={"Profil"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Erfolgreiche Antwort mit Benutzerprofil",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", type="object",
+     *                 ref="#/components/schemas/User"
+     *             )
+     *         )
+     *     ),
+     * )
      */
     public function show(Request $request): JsonResponse
     {
@@ -27,7 +42,25 @@ class ProfileController extends Controller
     }
 
     /**
-     * Aktualisiere die Profildaten mit validierten Daten.
+     * @OA\Put(
+     *     path="/api/profile",
+     *     summary="Profildaten des angemeldeten Benutzers aktualisieren",
+     *     tags={"Profil"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/ProfileUpdateRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Profil erfolgreich aktualisiert",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Profil erfolgreich aktualisiert."),
+     *             @OA\Property(property="user", ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Nicht autorisiert")
+     * )
      */
     public function update(ProfileUpdateRequest $request): JsonResponse
     {
@@ -35,7 +68,6 @@ class ProfileController extends Controller
 
         $user->fill($request->validated());
 
-        // Wenn die E-Mail geändert wurde, setze die Verifizierung zurück
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
@@ -49,28 +81,43 @@ class ProfileController extends Controller
     }
 
     /**
-     * Lösche das Benutzerkonto nach Passwortbestätigung.
+     * @OA\Delete(
+     *     path="/api/profile",
+     *     summary="Benutzerkonto löschen",
+     *     tags={"Profil"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="password", type="string", format="password", example="GeheimesPasswort123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Benutzerkonto erfolgreich gelöscht",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Benutzerkonto wurde gelöscht.")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Falsches Passwort oder nicht autorisiert")
+     * )
      */
     public function destroy(Request $request): JsonResponse
     {
-        // Passwort validieren
         $request->validate([
             'password' => ['required'],
         ]);
 
         $user = $request->user();
 
-        // Passwort prüfen
         if (!Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Das Passwort ist falsch.',
             ], 403);
         }
 
-        // User-Session beenden
         Auth::logout();
 
-        // Benutzerkonto löschen
         $user->delete();
 
         return response()->json([

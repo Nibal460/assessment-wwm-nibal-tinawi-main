@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * @OA\Info(
+ *     title="Meine API",
+ *     version="1.0.0",
+ *     description="API Dokumentation für mein Projekt"
+ * )
+ */
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\ProductController;
 use App\Http\Controllers\API\CategoryController;
@@ -16,4 +24,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Kategorien-API
     Route::apiResource('categories', CategoryController::class);
+
+
+    Route::post('/orders', [OrderController::class, 'store']);
 });
+
+

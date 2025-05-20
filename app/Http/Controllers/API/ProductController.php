@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
+    
     public function __construct()
     {
         // Auth via Sanctum für alle Methoden
@@ -25,14 +27,45 @@ class ProductController extends Controller
         })->only(['store', 'update', 'destroy']);
     }
 
-    // GET /api/products
+    /**
+     * @OA\Get(
+     *     path="/api/products",
+     *     summary="Liste aller Produkte abrufen",
+     *     tags={"Produkte"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Erfolgreiche Antwort mit Produktliste",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/Product")
+     *         )
+     *     )
+     * )
+     */
     public function index(): JsonResponse
     {
-        $products = Product::with('category')->get(); // Kategorie laden
+        $products = Product::with('category')->get();
         return response()->json($products, 200);
     }
 
-    // POST /api/products
+    /**
+     * @OA\Post(
+     *     path="/api/products",
+     *     summary="Neues Produkt erstellen",
+     *     tags={"Produkte"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/ProductCreateRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Produkt erfolgreich erstellt",
+     *         @OA\JsonContent(ref="#/components/schemas/Product")
+     *     ),
+     *     @OA\Response(response=403, description="Nicht autorisiert")
+     * )
+     */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -49,14 +82,58 @@ class ProductController extends Controller
         ], 201);
     }
 
-    // GET /api/products/{product}
+    /**
+     * @OA\Get(
+     *     path="/api/products/{product}",
+     *     summary="Produktdetails abrufen",
+     *     tags={"Produkte"},
+     *     @OA\Parameter(
+     *         name="product",
+     *         in="path",
+     *         description="ID des Produkts",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produktdetails",
+     *         @OA\JsonContent(ref="#/components/schemas/Product")
+     *     ),
+     *     @OA\Response(response=404, description="Produkt nicht gefunden")
+     * )
+     */
     public function show(Product $product): JsonResponse
     {
-        $product->load('category'); // Kategorie nachladen
+        $product->load('category');
         return response()->json($product, 200);
     }
 
-    // PUT/api/products/{product}
+    /**
+     * @OA\Put(
+     *     path="/api/products/{product}",
+     *     summary="Produkt aktualisieren",
+     *     tags={"Produkte"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="product",
+     *         in="path",
+     *         description="ID des Produkts",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(ref="#/components/schemas/ProductCreateRequest")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produkt erfolgreich aktualisiert",
+     *         @OA\JsonContent(ref="#/components/schemas/Product")
+     *     ),
+     *     @OA\Response(response=403, description="Nicht autorisiert"),
+     *     @OA\Response(response=404, description="Produkt nicht gefunden")
+     * )
+     */
     public function update(Request $request, Product $product): JsonResponse
     {
         $validated = $request->validate([
@@ -73,7 +150,30 @@ class ProductController extends Controller
         ], 200);
     }
 
-    // DELETE /api/products/{product}
+    /**
+     * @OA\Delete(
+     *     path="/api/products/{product}",
+     *     summary="Produkt löschen",
+     *     tags={"Produkte"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="product",
+     *         in="path",
+     *         description="ID des Produkts",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Produkt erfolgreich gelöscht",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Produkt gelöscht.")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Nicht autorisiert"),
+     *     @OA\Response(response=404, description="Produkt nicht gefunden")
+     * )
+     */
     public function destroy(Product $product): JsonResponse
     {
         $product->delete();
