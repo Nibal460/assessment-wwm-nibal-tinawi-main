@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
@@ -13,9 +14,9 @@ class ProductController extends Controller
         // Auth via Sanctum für alle Methoden
         $this->middleware('auth:sanctum');
 
-        // Admin-Check nur für schreibende Methoden (store, update, destroy)
+        // Admin-Check nur für Store, Update, Destroy
         $this->middleware(function ($request, $next) {
-            if (!Auth::user()->is_admin) {
+            if (!Auth::user() || !Auth::user()->is_admin) {
                 return response()->json([
                     'error' => 'Nur Admins dürfen diese Aktion durchführen.'
                 ], 403);
@@ -24,15 +25,15 @@ class ProductController extends Controller
         })->only(['store', 'update', 'destroy']);
     }
 
-    // GET /api/products - Liste aller Produkte mit Kategorie laden
-    public function index()
+    // GET /api/products
+    public function index(): JsonResponse
     {
-        $products = Product::with('category')->get();  // Eager Loading für Kategorie
+        $products = Product::with('category')->get(); // Kategorie laden
         return response()->json($products, 200);
     }
 
-    // POST /api/products - Produkt erstellen
-    public function store(Request $request)
+    // POST /api/products
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -48,15 +49,15 @@ class ProductController extends Controller
         ], 201);
     }
 
-    // GET /api/products/{product} - Einzelnes Produkt anzeigen
-    public function show(Product $product)
+    // GET /api/products/{product}
+    public function show(Product $product): JsonResponse
     {
-        $product->load('category');  // Kategorie laden
+        $product->load('category'); // Kategorie nachladen
         return response()->json($product, 200);
     }
 
-    // PUT/PATCH /api/products/{product} - Produkt aktualisieren
-    public function update(Request $request, Product $product)
+    // PUT/api/products/{product}
+    public function update(Request $request, Product $product): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -72,8 +73,8 @@ class ProductController extends Controller
         ], 200);
     }
 
-    // DELETE /api/products/{product} - Produkt löschen
-    public function destroy(Product $product)
+    // DELETE /api/products/{product}
+    public function destroy(Product $product): JsonResponse
     {
         $product->delete();
 
