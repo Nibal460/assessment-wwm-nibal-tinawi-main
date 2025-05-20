@@ -54,7 +54,7 @@ class ProductAuthorizationTest extends TestCase
 
         // Create a category
         $category = Category::factory()->create([
-            'name' => 'Electronics',
+            'name' => 'Laptops',
         ]);
 
         // Attempt to create a product as staff

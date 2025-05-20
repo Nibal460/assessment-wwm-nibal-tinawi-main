@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
-    
+
     public function __construct()
     {
         // Auth via Sanctum für alle Methoden
@@ -182,4 +182,73 @@ class ProductController extends Controller
             'message' => 'Produkt gelöscht.'
         ], 200);
     }
+
+
+/**
+ * @OA\Get(
+ *     path="/api/products/search",
+ *     summary="Suche nach Produkten",
+ *     tags={"Produkte"},
+ *     @OA\Parameter(
+ *         name="name",
+ *         in="query",
+ *         description="Name des Produkts (Teilsuche)",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="category",
+ *         in="query",
+ *         description="Kategorie-ID",
+ *         required=false,
+ *         @OA\Schema(type="integer")
+ *     ),
+ *     @OA\Parameter(
+ *         name="min_price",
+ *         in="query",
+ *         description="Mindestpreis",
+ *         required=false,
+ *         @OA\Schema(type="number", format="float")
+ *     ),
+ *     @OA\Parameter(
+ *         name="max_price",
+ *         in="query",
+ *         description="Höchstpreis",
+ *         required=false,
+ *         @OA\Schema(type="number", format="float")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste der gefundenen Produkte",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(ref="#/components/schemas/Product")
+ *         )
+ *     )
+ * )
+ */
+
+    public function search(Request $request)
+{
+    $query = Product::query();
+
+    if ($request->filled('name')) {
+        $query->where('name', 'LIKE', '%' . $request->name . '%');
+    }
+
+    if ($request->filled('category')) {
+        $query->where('category_id', $request->category);
+    }
+
+    if ($request->filled('min_price')) {
+        $query->where('price', '>=', $request->min_price);
+    }
+
+    if ($request->filled('max_price')) {
+        $query->where('price', '<=', $request->max_price);
+    }
+
+    return response()->json($query->get());
+}
+
 }
