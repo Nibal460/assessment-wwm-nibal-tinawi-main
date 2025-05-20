@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,72 +11,81 @@ class CategoryController extends Controller
 {
     public function __construct()
     {
-        // Authentifizierung erforderlich
-        $this->middleware('auth');
-
-        // Nur Admins dürfen diese Methoden verwenden
-        $this->middleware(function ($request, $next) {
-            if (!Auth::user() || !Auth::user()->is_admin) {
-                return redirect()->route('dashboard.staff')->with('error', 'Nur Admins dürfen diese Aktion durchführen.');
-            }
-
-            return $next($request);
-        })->only(['create', 'store', 'edit', 'update', 'destroy']);
+        // Nur authentifizierte Nutzer
+        $this->middleware('auth:sanctum');
     }
 
-    // ✅ Für alle sichtbar (Admins und Mitarbeiter)
+    // 🟢 GET /api/categories
     public function index()
     {
-        $categories = Category::all();
-        return view('categories.index', compact('categories'));
+        return response()->json(Category::all(), 200);
     }
 
+    // 🟢 GET /api/categories/{id}
     public function show($id)
     {
-        $category = Category::findOrFail($id);
-        return view('categories.show', compact('category'));
+        $category = Category::find($id);
+
+        if (!$category) {
+            return response()->json(['message' => 'Kategorie nicht gefunden'], 404);
+        }
+
+        return response()->json($category, 200);
     }
 
-    // ✅ Nur für Admins
-    public function create()
-    {
-        return view('categories.create');
-    }
-
+    // 🛡️ POST /api/categories (nur für Admins)
     public function store(Request $request)
     {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['message' => 'Nicht autorisiert'], 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
 
-        Category::create($validated);
+        $category = Category::create($validated);
 
-        return redirect()->route('categories.index')->with('success', 'Kategorie erfolgreich erstellt.');
+        return response()->json(['message' => 'Kategorie erstellt', 'category' => $category], 201);
     }
 
-    public function edit($id)
-    {
-        $category = Category::findOrFail($id);
-        return view('categories.edit', compact('category'));
-    }
-
+    // 🛡️ PUT /api/categories/{id} (nur für Admins)
     public function update(Request $request, $id)
     {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['message' => 'Nicht autorisiert'], 403);
+        }
+
+        $category = Category::find($id);
+
+        if (!$category) {
+            return response()->json(['message' => 'Kategorie nicht gefunden'], 404);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
 
-        $category = Category::findOrFail($id);
         $category->update($validated);
 
-        return redirect()->route('categories.index')->with('success', 'Kategorie erfolgreich aktualisiert.');
+        return response()->json(['message' => 'Kategorie aktualisiert', 'category' => $category], 200);
     }
 
+    // 🛡️ DELETE /api/categories/{id} (nur für Admins)
     public function destroy($id)
     {
-        $category = Category::findOrFail($id);
+        if (!Auth::user()->is_admin) {
+            return response()->json(['message' => 'Nicht autorisiert'], 403);
+        }
+
+        $category = Category::find($id);
+
+        if (!$category) {
+            return response()->json(['message' => 'Kategorie nicht gefunden'], 404);
+        }
+
         $category->delete();
 
-        return redirect()->route('categories.index')->with('success', 'Kategorie gelöscht.');
+        return response()->json(['message' => 'Kategorie gelöscht'], 200);
     }
 }
